@@ -84,8 +84,8 @@ export function CustomMap({ google }) {
                         google={google}
                         className={'mapContainer'}
                         containerStyle={{
-                            width: "50%",
-                            height: "65vh"
+                            width: "50vh",
+                            height: "75vh"
                         }}
                         center={markerSet[0]}
                         initialCenter={markerSet[0]}
