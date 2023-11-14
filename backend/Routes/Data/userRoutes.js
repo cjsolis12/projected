@@ -9,12 +9,12 @@ const UTILS = require("./utils");
 router.post("/signup", async (req, res) => {
   try {
     //Hashing the user's password before saving it to DB
-    const hashedPassword = await bcrypt.hash(req.body.password, 10);
+    const hashedPassword = await bcrypt.hash(req.body.pwd, 10);
 
     //Create user with hashed password
     const createdUser = await User.create({
       email: req.body.email,
-      password: hashedPassword,
+      pwd: hashedPassword,
     });
     console.log(createdUser);
     req.session.signinSuccess = true;
@@ -33,24 +33,45 @@ router.post("/signup", async (req, res) => {
  * Handle log in
  */
 router.post("/login", async (req, res) => {
-  const currentUser = await User.find({
-    email: req.body.email,
-    pwd: req.body.password,
-  }).lean();
-  // send tokenized user credential to decode on the front end.
-  if (currentUser.length !== 0) {
-    const token = jwt.sign(currentUser[0], "124", { mutatePayload: true });
-    req.session.loginStatus = true;
+  try{
+    const currentUser = await User.findOne({
+      email: req.body.email,
+    });
+    if(!currentUser){
+      return res.send({token: false})
+    }
+
+    const passwordMatch = await bcrypt.compare(req.body.password,currentUser.pwd);
+    if(!passwordMatch){
+      return res.send({token: false});
+    }
+
+    //Generate a token with a user identifier 
+    const token =jwt.sign({userId: currentUser._id}, process.env.JWT_SECRET, { expiresIn: '1h'});
     res.send({
-      ...currentUser[0],
+      ...currentUser.toObject(),
       token: true,
       authToken: token,
     });
-  } else {
-    req.session.loginStatus = false;
-    res.send({ token: false });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({error: "Internal Server Error"})
   }
 });
+  // send tokenized user credential to decode on the front end.
+  // if (currentUser.length !== 0) {
+  //   const token = jwt.sign(currentUser[0], "124", { mutatePayload: true });
+  //   req.session.loginStatus = true;
+  //   res.send({
+  //     ...currentUser[0],
+  //     token: true,
+  //     authToken: token,
+  //   });
+  // } else {
+  //   req.session.loginStatus = false;
+  //   res.send({ token: false });
+  // }
+
 /**
  * Edit User
  */
